@@ -18,7 +18,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                   bat 'rmdir /s /q C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model'
+                  // bat 'rmdir /s /q C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model'
                     
                     if (params.MODEL_GIT_URL) {
                         echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
