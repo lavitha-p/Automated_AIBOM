@@ -2,11 +2,11 @@ pipeline {
     agent any
 
     environment {
-        GIT_CREDENTIALS_ID = 'gihub-credentials'
-        MODEL_DIR = 'F:/HPE_Project/Model'
+        GIT_CREDENTIALS_ID = 'github-credentials'
+        MODEL_DIR = 'F:\\HPE_Project\\Model'
         SCRIPT_REPO = 'https://github.com/Thejashwini005/AIBOM_Project.git'
-        REPORT_DIR = "${MODEL_DIR}/reports"
-        TOOLS_DIR = "${MODEL_DIR}/tools"
+        REPORT_DIR = "${MODEL_DIR}\\reports"
+        TOOLS_DIR = "${MODEL_DIR}\\tools"
     }
 
     parameters {
@@ -18,20 +18,21 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    sh "rm -rf ${MODEL_DIR}"
+                    bat "rmdir /s /q ${MODEL_DIR}"
+                    
                     if (params.MODEL_GIT_URL) {
                         echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-                        sh "git clone ${params.MODEL_GIT_URL} ${MODEL_DIR}"
+                        bat "git clone ${params.MODEL_GIT_URL} ${MODEL_DIR}"
                     } else if (params.MODEL_LOCAL_PATH) {
                         echo "📂 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
-                        sh "cp -r \"${params.MODEL_LOCAL_PATH}\" \"${MODEL_DIR}\""
+                        bat "xcopy /E /I \"${params.MODEL_LOCAL_PATH}\" \"${MODEL_DIR}\""
                     } else {
                         error "❌ No model source provided!"
                     }
 
-                    def datasetExists = fileExists("${MODEL_DIR}/dataset.json")
-                    def model_infoExists = fileExists("${MODEL_DIR}/model_info.json")
-                    if(!datasetExists || !model_infoExists){
+                    def datasetExists = fileExists("${MODEL_DIR}\\dataset.json")
+                    def model_infoExists = fileExists("${MODEL_DIR}\\model_info.json")
+                    if (!datasetExists || !model_infoExists) {
                         error "Pipeline failed"
                     }
 
@@ -44,42 +45,42 @@ pipeline {
             steps {
                 script {
                     echo "📥 Fetching AIBOM script..."
-                    sh "git clone ${SCRIPT_REPO} ${MODEL_DIR}/script"
-                    sh "cp ${MODEL_DIR}/script/generate_aibom.py ${MODEL_DIR}/"
+                    bat "git clone ${SCRIPT_REPO} ${MODEL_DIR}\\script"
+                    bat "copy ${MODEL_DIR}\\script\\generate_aibom.py ${MODEL_DIR}\\"
                     echo "✅ Deploy stage completed."
                 }
             }
         }
-        
+
         stage('Test') {
             steps {
                 script {
-                    sh 'mkdir -p $TOOLS_DIR'
+                    bat "mkdir ${TOOLS_DIR}"
 
-                    sh '''
-                        echo "Installing Syft..."
-                        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b $TOOLS_DIR
-                        echo "Syft installed successfully!"
-                        syft --version
-                    '''
+                    bat """
+                        echo Installing Syft...
+                        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ${TOOLS_DIR}
+                        echo Syft installed successfully!
+                        ${TOOLS_DIR}\\syft.exe --version
+                    """
 
-                    sh '''
-                        echo "Installing Trivy..."
-                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b $TOOLS_DIR
-                        echo "Trivy installed successfully!"
-                    '''
+                    bat """
+                        echo Installing Trivy...
+                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b ${TOOLS_DIR}
+                        echo Trivy installed successfully!
+                    """
 
-                    sh '''
-                        echo "Checking Syft and Trivy..."
-                        which syft || echo "Syft not found!"
-                        which trivy || echo "Trivy not found!"
-                    '''
+                    bat """
+                        echo Checking Syft and Trivy...
+                        where syft || echo Syft not found!
+                        where trivy || echo Trivy not found!
+                    """
                     
                     echo "🛠️ Running AIBOM script..."
-                    sh "python ${MODEL_DIR}/generate_aibom.py --model-path ${MODEL_DIR}"
+                    bat "python ${MODEL_DIR}\\generate_aibom.py --model-path ${MODEL_DIR}"
                     
                     // Ensure report directory exists
-                    sh "mkdir -p ${REPORT_DIR}"
+                    bat "mkdir ${REPORT_DIR}"
                     
                     echo "✅ Test stage completed."
                 }
@@ -89,9 +90,9 @@ pipeline {
         stage('Promote') {
             steps {
                 script {
-                    def vulnReportPath = "${REPORT_DIR}/vulnerability.json"
-                    def aibomExists = fileExists("${REPORT_DIR}/aibom.json")
-                    def sbomExists = fileExists("${REPORT_DIR}/sbom.json")
+                    def vulnReportPath = "${REPORT_DIR}\\vulnerability.json"
+                    def aibomExists = fileExists("${REPORT_DIR}\\aibom.json")
+                    def sbomExists = fileExists("${REPORT_DIR}\\sbom.json")
                     def vulnExists = fileExists(vulnReportPath)
 
                     if (vulnExists) {
@@ -109,7 +110,7 @@ pipeline {
 
                     echo "📢 CI/CD Pipeline completed successfully!"
                     echo "Generated Reports:"
-                    sh "ls -lh ${REPORT_DIR}"
+                    bat "dir ${REPORT_DIR}"
                 }
             }
         }
