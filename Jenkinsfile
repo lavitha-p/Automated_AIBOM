@@ -18,25 +18,25 @@ pipeline {
         stage('Build') {
     steps {
         script {
-            // 🧹 Clean up old model folder if it exists
+            // 💅 Clean up old model folder if it exists
             if (fileExists("${MODEL_DIR}")) {
                 echo "🧹 Cleaning existing model directory..."
                 bat "rmdir /s /q \"${MODEL_DIR}\""
             }
 
-            if (params.MODEL_GIT_URL) {
-                echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-                bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
-            } else if (params.MODEL_LOCAL_PATH) {
-                echo "📂 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
-                bat "xcopy /E /I \"${params.MODEL_LOCAL_PATH}\" \"${MODEL_DIR}\""
-            } else {
-                error "❌ No model source provided!"
-            }
+            // 📥 Clone GPT-2
+            echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
+            bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
 
+            // 🫶 Copy dataset.json and model_info.json from this repo to Model/
+            echo "🧾 Copying dataset and model info files into model directory..."
+            bat "copy \"${env.WORKSPACE}\\dataset.json\" \"${MODEL_DIR}\\dataset.json\""
+            bat "copy \"${env.WORKSPACE}\\model_info.json\" \"${MODEL_DIR}\\model_info.json\""
+
+            // ✅ Validate
             def datasetExists = fileExists("${MODEL_DIR}\\dataset.json")
-            def model_infoExists = fileExists("${MODEL_DIR}\\model_info.json")
-            if (!datasetExists || !model_infoExists) {
+            def modelInfoExists = fileExists("${MODEL_DIR}\\model_info.json")
+            if (!datasetExists || !modelInfoExists) {
                 error "❌ Required files dataset.json or model_info.json not found!"
             }
 
@@ -44,6 +44,7 @@ pipeline {
         }
     }
 }
+
 
         stage('Deploy') {
             steps {
