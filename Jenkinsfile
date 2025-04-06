@@ -63,40 +63,67 @@ pipeline {
                     bat "mkdir \"${TOOLS_DIR}\""
 
                     echo "🔧 Downloading Syft for Windows..."
-                    bat """
-                        powershell -Command "Invoke-WebRequest -Uri https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe -OutFile ${TOOLS_DIR}\\syft.exe"
-                    """
-                    echo "✅ Syft installed."
+                  echo "✅ Syft & Trivy Installer Stage 💅"
 
-                    echo "🔧 Downloading Trivy for Windows..."
-                    bat """
-                        powershell -Command "Invoke-WebRequest -Uri https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_windows-64bit.zip -OutFile ${TOOLS_DIR}\\trivy.zip"
-                        powershell -Command "Expand-Archive -Path ${TOOLS_DIR}\\trivy.zip -DestinationPath ${TOOLS_DIR}"
-                    """
-                    echo "✅ Trivy installed."
+bat """
+powershell -Command "& {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;
+    
+    # --- SYFT INSTALL ---
+    Write-Host '🔧 Downloading Syft for Windows...'
+    \$attempts = 0; \$success = \$false;
+    while (-not \$success -and \$attempts -lt 3) {
+        try {
+            Invoke-WebRequest -Uri 'https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe' -OutFile '${TOOLS_DIR}\\syft.exe'
+            \$success = \$true
+        } catch {
+            \$attempts++
+            Start-Sleep -Seconds 5
+        }
+    }
+    if (-not \$success) { throw '❌ Failed to download Syft!' }
+    Write-Host '✅ Syft installed.'
 
-                    bat """
-                        echo 🔍 Verifying Syft and Trivy...
-                        if exist "${TOOLS_DIR}\\syft.exe" (
-                            ${TOOLS_DIR}\\syft.exe version
-                        ) else (
-                            echo Syft not found!
-                        )
+    # --- TRIVY INSTALL ---
+    Write-Host '🔧 Downloading Trivy for Windows...'
+    \$attempts = 0; \$success = \$false;
+    while (-not \$success -and \$attempts -lt 3) {
+        try {
+            Invoke-WebRequest -Uri 'https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_windows-64bit.zip' -OutFile '${TOOLS_DIR}\\trivy.zip'
+            Expand-Archive -Path '${TOOLS_DIR}\\trivy.zip' -DestinationPath '${TOOLS_DIR}' -Force
+            \$success = \$true
+        } catch {
+            \$attempts++
+            Start-Sleep -Seconds 5
+        }
+    }
+    if (-not \$success) { throw '❌ Failed to download Trivy!' }
+    Write-Host '✅ Trivy installed.'
+}"
+"""
 
-                        if exist "${TOOLS_DIR}\\trivy.exe" (
-                            ${TOOLS_DIR}\\trivy.exe --version
-                        ) else (
-                            echo Trivy not found!
-                        )
-                    """
+echo "🔍 Verifying Syft and Trivy..."
+bat """
+if exist "${TOOLS_DIR}\\syft.exe" (
+    ${TOOLS_DIR}\\syft.exe version
+) else (
+    echo ❌ Syft not found!
+)
 
-                    echo "🚀 Running AIBOM generator..."
-                    bat "python \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\""
+if exist "${TOOLS_DIR}\\trivy.exe" (
+    ${TOOLS_DIR}\\trivy.exe --version
+) else (
+    echo ❌ Trivy not found!
+)
+"""
 
-                    echo "📁 Creating reports directory..."
-                    bat "mkdir \"${REPORT_DIR}\""
+echo "🚀 Running AIBOM generator..."
+bat "python \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\""
 
-                    echo "✅ Test stage completed."
+echo "📁 Creating reports directory..."
+bat "mkdir \"${REPORT_DIR}\""
+
+echo "✅ Test stage completed."
                 }
             }
         }
