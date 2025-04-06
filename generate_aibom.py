@@ -100,7 +100,8 @@ def generate_vulnerability_report(input_folder, reports_folder):
     vulnerability_file = os.path.join(reports_folder, "vulnerability.json")  
 
     try:  
-        subprocess.run(["trivy", "fs", input_folder, "--include-dev-deps", "-f", "json", "-o", vulnerability_file], check=True)  
+        TRIVY_PATH = r"C:\Users\HP\scoop\shims\trivy.exe"  # 🧸 Your working Trivy path
+        subprocess.run([TRIVY_PATH, "fs", input_folder, "--include-dev-deps", "-f", "json", "-o", vulnerability_file], check=True)  
         print(f"✅ Vulnerability report saved to {vulnerability_file}")  
         return vulnerability_file  
     except subprocess.CalledProcessError as e:  
