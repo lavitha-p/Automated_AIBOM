@@ -1,45 +1,44 @@
 {
-    "Model Name": "GPT-2",
-    "Type": "Transformer-based Language Model",
-    "Model Version": "1.5B",
-    "Developer Name": "OpenAI",
-    "License Information": "Open-source (MIT License for small models, restricted for larger ones)",
-  
-    "Model Architecture": {
-      "ML Model": "Transformer-based autoregressive model",
-      "Algorithm": "Self-Attention Mechanism (Transformer)",
-      "Model Parameters": {
-        "Number of Layers": 48,
-        "Number of Attention Heads": 25,
-        "Hidden Layer Size": 1600,
-        "Context Length": 1024
-      }
-    },
-    "Input": "Text prompts",
-    "Input Format": {
-      "Type": "Plain text",
-      "Encoding": "UTF-8",
-      "Example": "Once upon a time..."
-    },
-  
-    "Output": "Generated text completion",
-    "Output Format": {
-      "Type": "Plain text",
-      "Encoding": "UTF-8",
-      "Example": "Once upon a time, there was a kingdom ruled by a wise king..."
-    },
-  
-    "Usage Scenarios": [
-      "Text generation",
-      "Chatbots and virtual assistants",
-      "Code completion",
-      "Content summarization"
-    ],
-  
-    "Limitations": [
-      "Can generate biased or inaccurate content",
-      "No real-world knowledge beyond training data",
-      "Prone to generating misleading or nonsensical text"
-    ]
-  }
-  
+  "model_name": "YourModelNameHere",
+  "type": "Transformer-based / CNN / RNN / Custom",
+  "model_version": "1.0.0",
+  "developer_name": "Developer or Organization Name",
+  "license_information": "License type (e.g., MIT, Apache 2.0, Proprietary)",
+  "model_architecture": {
+    "ml_model": "Model type (e.g., Transformer, CNN, etc.)",
+    "algorithm": "Algorithm used (e.g., Self-Attention, LSTM, etc.)"
+  },
+  "model_parameters": {
+    "number_of_layers": "e.g., 24",
+    "number_of_attention_heads": "e.g., 16 (if applicable)",
+    "hidden_layer_size": "e.g., 1024",
+    "context_length": "e.g., 512"
+  },
+  "input": {
+    "input_type": "Text / Image / Audio / Other",
+    "input_format": {
+      "type": "e.g., Plain text, PNG, WAV",
+      "encoding": "e.g., UTF-8, Base64, etc.",
+      "example": "A representative input sample"
+    }
+  },
+  "output": {
+    "output_type": "Generated text / Class label / Transcription / Other",
+    "output_format": {
+      "type": "e.g., Plain text, JSON, etc.",
+      "encoding": "e.g., UTF-8, Base64, etc.",
+      "example": "An example of expected output"
+    }
+  },
+  "usage_scenarios": [
+    "Text generation",
+    "Image classification",
+    "Speech recognition",
+    "Recommendation systems"
+  ],
+  "limitations": [
+    "May produce biased or inaccurate results",
+    "Limited to training data scope",
+    "Resource-intensive for large deployments"
+  ]
+}
