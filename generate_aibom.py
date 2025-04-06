@@ -145,5 +145,12 @@ def main():
     # Generate Vulnerability Report  
     generate_vulnerability_report(local_path, reports_folder)  
 
-if __name__ == "__main__":  
-    main()
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print(f"🔥 Script crashed with error: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)
+
