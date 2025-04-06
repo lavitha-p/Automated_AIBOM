@@ -57,14 +57,12 @@ pipeline {
             }
         }
 
-        stage('Test') {
+                stage('Test') {
             steps {
                 script {
                     bat "mkdir \"${TOOLS_DIR}\""
 
 powershell '''
-# Set Tools Directory properly using Join-Path
-# Define workspace and tools path
 $workspace = "$env:WORKSPACE"
 $toolsDir = Join-Path -Path $workspace -ChildPath "tools"
 $syftExePath = Join-Path -Path $toolsDir -ChildPath "syft.exe"
@@ -72,7 +70,6 @@ $trivyZipPath = Join-Path -Path $toolsDir -ChildPath "trivy.zip"
 $trivyExtractedDir = Join-Path -Path $toolsDir -ChildPath "trivy"
 $trivyExePath = Join-Path -Path $trivyExtractedDir -ChildPath "trivy.exe"
 
-# Create tools directory
 New-Item -ItemType Directory -Force -Path $toolsDir
 
 # ✅ SYFT download
@@ -84,22 +81,17 @@ $trivyUrl = "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/tri
 curl.exe -L -o "$trivyZipPath" "$trivyUrl"
 Expand-Archive -Path $trivyZipPath -DestinationPath $trivyExtractedDir -Force
 
-# ✅ Update PATH for current session
 $env:PATH += ";$toolsDir;$trivyExtractedDir"
-
 Write-Host "✅ Syft and Trivy installed successfully!"
-
 '''
 
+                    echo "🚀 Running AIBOM generator..."
+                    bat "\"C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\""
 
+                    echo "📁 Creating reports directory..."
+                    bat "mkdir \"${REPORT_DIR}\""
 
-echo "🚀 Running AIBOM generator..."
-bat '"C:\\Users\\Lavi\\AppData\\Local\\Programs\\Python\\Python311\\python.exe" "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model\\generate_aibom.py" --model-path "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model"'
-
-echo "📁 Creating reports directory..."
-bat "mkdir \"${REPORT_DIR}\""
-
-echo "✅ Test stage completed."
+                    echo "✅ Test stage completed."
                 }
             }
         }
