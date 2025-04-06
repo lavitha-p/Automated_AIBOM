@@ -91,20 +91,7 @@ Write-Host "✅ Syft and Trivy installed successfully!"
 
 '''
 
-echo "🔍 Verifying Syft and Trivy..."
-bat """
-if exist "${TOOLS_DIR}\\syft.exe" (
-    ${TOOLS_DIR}\\syft.exe version
-) else (
-    echo ❌ Syft not found!
-)
 
-if exist "${TOOLS_DIR}\\trivy.exe" (
-    ${TOOLS_DIR}\\trivy.exe --version
-) else (
-    echo ❌ Trivy not found!
-)
-"""
 
 echo "🚀 Running AIBOM generator..."
 bat "python \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\""
