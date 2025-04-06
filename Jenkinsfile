@@ -88,25 +88,29 @@ while (-not $success -and $attempts -lt 3) {
 if (-not $success) { throw "❌ Failed to download Syft!" }
 Write-Host "✅ Syft installed."
 
-# Set tools directory
-$env:TOOLS_DIR = "$PWD\tools"
-New-Item -ItemType Directory -Force -Path $env:TOOLS_DIR
+# Set Tools Directory properly using Join-Path
+$workspace = "$env:WORKSPACE"
+$toolsDir = Join-Path -Path $workspace -ChildPath "tools"
+$trivyZipPath = Join-Path -Path $toolsDir -ChildPath "trivy.zip"
+$trivyExtractedDir = Join-Path -Path $toolsDir -ChildPath "trivy"
 
-# Define Trivy download URL and output path
+# Create tools dir safely
+New-Item -ItemType Directory -Force -Path $toolsDir
+
+# Trivy download URL
 $trivyUrl = "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
-$trivyZipPath = "$env:TOOLS_DIR\trivy.zip"
 
-# Download Trivy
+# Download Trivy zip
 Write-Host "🔧 Downloading Trivy for Windows..."
 Invoke-WebRequest -Uri $trivyUrl -OutFile $trivyZipPath
 
-# Unzip Trivy
-Expand-Archive -Path $trivyZipPath -DestinationPath "$env:TOOLS_DIR\trivy" -Force
+# Unzip it
+Expand-Archive -Path $trivyZipPath -DestinationPath $trivyExtractedDir -Force
 
-# Make Trivy executable available
-$env:PATH += ";$env:TOOLS_DIR\trivy"
+# Add Trivy to PATH (current session)
+$env:PATH += ";$trivyExtractedDir"
 
-Write-Host "✅ Trivy installed."
+Write-Host "✅ Trivy installed successfully!"
 
 '''
 
