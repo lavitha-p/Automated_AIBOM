@@ -16,28 +16,34 @@ pipeline {
 
     stages {
         stage('Build') {
-            steps {
-                script {
-                    if (params.MODEL_GIT_URL) {
-                        echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-                        bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
-                    } else if (params.MODEL_LOCAL_PATH) {
-                        echo "📂 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
-                        bat "xcopy /E /I \"${params.MODEL_LOCAL_PATH}\" \"${MODEL_DIR}\""
-                    } else {
-                        error "❌ No model source provided!"
-                    }
-
-                    def datasetExists = fileExists("${MODEL_DIR}\\dataset.json")
-                    def model_infoExists = fileExists("${MODEL_DIR}\\model_info.json")
-                    if (!datasetExists || !model_infoExists) {
-                        error "❌ Required files missing: dataset.json or model_info.json"
-                    }
-
-                    echo "✅ Build stage completed."
-                }
+    steps {
+        script {
+            // 🧹 Clean up old model folder if it exists
+            if (fileExists("${MODEL_DIR}")) {
+                echo "🧹 Cleaning existing model directory..."
+                bat "rmdir /s /q \"${MODEL_DIR}\""
             }
+
+            if (params.MODEL_GIT_URL) {
+                echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
+                bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
+            } else if (params.MODEL_LOCAL_PATH) {
+                echo "📂 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
+                bat "xcopy /E /I \"${params.MODEL_LOCAL_PATH}\" \"${MODEL_DIR}\""
+            } else {
+                error "❌ No model source provided!"
+            }
+
+            def datasetExists = fileExists("${MODEL_DIR}\\dataset.json")
+            def model_infoExists = fileExists("${MODEL_DIR}\\model_info.json")
+            if (!datasetExists || !model_infoExists) {
+                error "❌ Required files dataset.json or model_info.json not found!"
+            }
+
+            echo "✅ Build stage completed."
         }
+    }
+}
 
         stage('Deploy') {
             steps {
