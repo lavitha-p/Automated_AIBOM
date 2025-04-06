@@ -63,54 +63,31 @@ pipeline {
                     bat "mkdir \"${TOOLS_DIR}\""
 
 powershell '''
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
-# --- SYFT INSTALL ---
-Write-Host "🔧 Downloading Syft for Windows..."
-$syftUrl = "https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe"
-$syftPath = "${env:TOOLS_DIR}\\syft.exe"
-
-$attempts = 0
-$success = $false
-while (-not $success -and $attempts -lt 3) {
-    try {
-        & curl.exe -L -o "$syftPath" "$syftUrl"
-        if (Test-Path "$syftPath") {
-            $success = $true
-        } else {
-            throw "Download failed"
-        }
-    } catch {
-        $attempts++
-        Start-Sleep -Seconds 5
-    }
-}
-if (-not $success) { throw "❌ Failed to download Syft!" }
-Write-Host "✅ Syft installed."
-
 # Set Tools Directory properly using Join-Path
+# Define workspace and tools path
 $workspace = "$env:WORKSPACE"
 $toolsDir = Join-Path -Path $workspace -ChildPath "tools"
+$syftExePath = Join-Path -Path $toolsDir -ChildPath "syft.exe"
 $trivyZipPath = Join-Path -Path $toolsDir -ChildPath "trivy.zip"
 $trivyExtractedDir = Join-Path -Path $toolsDir -ChildPath "trivy"
+$trivyExePath = Join-Path -Path $trivyExtractedDir -ChildPath "trivy.exe"
 
-# Create tools dir safely
+# Create tools directory
 New-Item -ItemType Directory -Force -Path $toolsDir
 
-# Trivy download URL
+# ✅ SYFT download
+$syftUrl = "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
+Invoke-WebRequest -Uri $syftUrl -OutFile $syftExePath
+
+# ✅ TRIVY download
 $trivyUrl = "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
-
-# Download Trivy zip
-Write-Host "🔧 Downloading Trivy for Windows..."
 Invoke-WebRequest -Uri $trivyUrl -OutFile $trivyZipPath
-
-# Unzip it
 Expand-Archive -Path $trivyZipPath -DestinationPath $trivyExtractedDir -Force
 
-# Add Trivy to PATH (current session)
-$env:PATH += ";$trivyExtractedDir"
+# ✅ Update PATH for current session
+$env:PATH += ";$toolsDir;$trivyExtractedDir"
 
-Write-Host "✅ Trivy installed successfully!"
+Write-Host "✅ Syft and Trivy installed successfully!"
 
 '''
 
