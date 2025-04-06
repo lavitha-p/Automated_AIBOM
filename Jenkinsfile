@@ -18,11 +18,9 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                  // bat 'rmdir /s /q C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model'
-                    
                     if (params.MODEL_GIT_URL) {
                         echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-                        bat "git clone ${params.MODEL_GIT_URL} ${MODEL_DIR}"
+                        bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
                     } else if (params.MODEL_LOCAL_PATH) {
                         echo "📂 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
                         bat "xcopy /E /I \"${params.MODEL_LOCAL_PATH}\" \"${MODEL_DIR}\""
@@ -33,7 +31,7 @@ pipeline {
                     def datasetExists = fileExists("${MODEL_DIR}\\dataset.json")
                     def model_infoExists = fileExists("${MODEL_DIR}\\model_info.json")
                     if (!datasetExists || !model_infoExists) {
-                        error "Pipeline failed"
+                        error "❌ Required files missing: dataset.json or model_info.json"
                     }
 
                     echo "✅ Build stage completed."
@@ -45,8 +43,8 @@ pipeline {
             steps {
                 script {
                     echo "📥 Fetching AIBOM script..."
-                    bat "git clone ${SCRIPT_REPO} ${MODEL_DIR}\\script"
-                    bat "copy ${MODEL_DIR}\\script\\generate_aibom.py ${MODEL_DIR}\\"
+                    bat "git clone ${SCRIPT_REPO} \"${MODEL_DIR}\\script\""
+                    bat "copy \"${MODEL_DIR}\\script\\generate_aibom.py\" \"${MODEL_DIR}\\\""
                     echo "✅ Deploy stage completed."
                 }
             }
@@ -55,33 +53,42 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    bat "mkdir ${TOOLS_DIR}"
+                    bat "mkdir \"${TOOLS_DIR}\""
+
+                    echo "🔧 Downloading Syft for Windows..."
+                    bat """
+                        powershell -Command "Invoke-WebRequest -Uri https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe -OutFile ${TOOLS_DIR}\\syft.exe"
+                    """
+                    echo "✅ Syft installed."
+
+                    echo "🔧 Downloading Trivy for Windows..."
+                    bat """
+                        powershell -Command "Invoke-WebRequest -Uri https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_windows-64bit.zip -OutFile ${TOOLS_DIR}\\trivy.zip"
+                        powershell -Command "Expand-Archive -Path ${TOOLS_DIR}\\trivy.zip -DestinationPath ${TOOLS_DIR}"
+                    """
+                    echo "✅ Trivy installed."
 
                     bat """
-                        echo Installing Syft...
-                        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ${TOOLS_DIR}
-                        echo Syft installed successfully!
-                        ${TOOLS_DIR}\\syft.exe --version
+                        echo 🔍 Verifying Syft and Trivy...
+                        if exist "${TOOLS_DIR}\\syft.exe" (
+                            ${TOOLS_DIR}\\syft.exe version
+                        ) else (
+                            echo Syft not found!
+                        )
+
+                        if exist "${TOOLS_DIR}\\trivy.exe" (
+                            ${TOOLS_DIR}\\trivy.exe --version
+                        ) else (
+                            echo Trivy not found!
+                        )
                     """
 
-                    bat """
-                        echo Installing Trivy...
-                        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b ${TOOLS_DIR}
-                        echo Trivy installed successfully!
-                    """
+                    echo "🚀 Running AIBOM generator..."
+                    bat "python \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\""
 
-                    bat """
-                        echo Checking Syft and Trivy...
-                        where syft || echo Syft not found!
-                        where trivy || echo Trivy not found!
-                    """
-                    
-                    echo "🛠️ Running AIBOM script..."
-                    bat "python ${MODEL_DIR}\\generate_aibom.py --model-path ${MODEL_DIR}"
-                    
-                    // Ensure report directory exists
-                    bat "mkdir ${REPORT_DIR}"
-                    
+                    echo "📁 Creating reports directory..."
+                    bat "mkdir \"${REPORT_DIR}\""
+
                     echo "✅ Test stage completed."
                 }
             }
@@ -97,7 +104,7 @@ pipeline {
 
                     if (vulnExists) {
                         def vulnReport = readFile(vulnReportPath)
-                        if (vulnReport.contains("LOW") || vulnReport.contains("MEDIUM") || vulnReport.contains("HIGH") || vulnReport.contains("CRITICAL")) {
+                        if (vulnReport =~ /LOW|MEDIUM|HIGH|CRITICAL/) {
                             echo "⚠️ WARNING: Model has vulnerabilities! Not ready for production."
                         } else {
                             echo "✅ Model passes security checks."
@@ -110,7 +117,7 @@ pipeline {
 
                     echo "📢 CI/CD Pipeline completed successfully!"
                     echo "Generated Reports:"
-                    bat "dir ${REPORT_DIR}"
+                    bat "dir \"${REPORT_DIR}\""
                 }
             }
         }
