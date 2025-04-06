@@ -62,45 +62,44 @@ pipeline {
                 script {
                     bat "mkdir \"${TOOLS_DIR}\""
 
-                    echo "🔧 Downloading Syft for Windows..."
-                  echo "✅ Syft & Trivy Installer Stage 💅"
+                    echo "✅ Syft & Trivy Installer Stage 💅"
 
-bat """
-powershell -Command "& {
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;
-    
-    # --- SYFT INSTALL ---
-    Write-Host '🔧 Downloading Syft for Windows...'
-    \$attempts = 0; \$success = \$false;
-    while (-not \$success -and \$attempts -lt 3) {
-        try {
-            Invoke-WebRequest -Uri 'https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe' -OutFile '${TOOLS_DIR}\\syft.exe'
-            \$success = \$true
-        } catch {
-            \$attempts++
-            Start-Sleep -Seconds 5
-        }
-    }
-    if (-not \$success) { throw '❌ Failed to download Syft!' }
-    Write-Host '✅ Syft installed.'
+powershell '''
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-    # --- TRIVY INSTALL ---
-    Write-Host '🔧 Downloading Trivy for Windows...'
-    \$attempts = 0; \$success = \$false;
-    while (-not \$success -and \$attempts -lt 3) {
-        try {
-            Invoke-WebRequest -Uri 'https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_windows-64bit.zip' -OutFile '${TOOLS_DIR}\\trivy.zip'
-            Expand-Archive -Path '${TOOLS_DIR}\\trivy.zip' -DestinationPath '${TOOLS_DIR}' -Force
-            \$success = \$true
-        } catch {
-            \$attempts++
-            Start-Sleep -Seconds 5
-        }
+# --- SYFT INSTALL ---
+Write-Host "🔧 Downloading Syft for Windows..."
+$attempts = 0
+$success = $false
+while (-not $success -and $attempts -lt 3) {
+    try {
+        Invoke-WebRequest -Uri "https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe" -OutFile "${env:TOOLS_DIR}\\syft.exe"
+        $success = $true
+    } catch {
+        $attempts++
+        Start-Sleep -Seconds 5
     }
-    if (-not \$success) { throw '❌ Failed to download Trivy!' }
-    Write-Host '✅ Trivy installed.'
-}"
-"""
+}
+if (-not $success) { throw "❌ Failed to download Syft!" }
+Write-Host "✅ Syft installed."
+
+# --- TRIVY INSTALL ---
+Write-Host "🔧 Downloading Trivy for Windows..."
+$attempts = 0
+$success = $false
+while (-not $success -and $attempts -lt 3) {
+    try {
+        Invoke-WebRequest -Uri "https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_windows-64bit.zip" -OutFile "${env:TOOLS_DIR}\\trivy.zip"
+        Expand-Archive -Path "${env:TOOLS_DIR}\\trivy.zip" -DestinationPath "${env:TOOLS_DIR}" -Force
+        $success = $true
+    } catch {
+        $attempts++
+        Start-Sleep -Seconds 5
+    }
+}
+if (-not $success) { throw "❌ Failed to download Trivy!" }
+Write-Host "✅ Trivy installed."
+'''
 
 echo "🔍 Verifying Syft and Trivy..."
 bat """
