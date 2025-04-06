@@ -100,13 +100,21 @@ def generate_vulnerability_report(input_folder, reports_folder):
     vulnerability_file = os.path.join(reports_folder, "vulnerability.json")  
 
     try:  
-        TRIVY_PATH = r"C:\Users\HP\scoop\shims\trivy.exe"  # 🧸 Your working Trivy path
-        subprocess.run([TRIVY_PATH, "fs", input_folder, "--include-dev-deps", "-f", "json", "-o", vulnerability_file], check=True)  
+        TRIVY_PATH = r"C:\Users\HP\scoop\shims\trivy.exe"  # or try full path if scoop fails  
+        print(f"🛠️ Running Trivy on: {input_folder} using: {TRIVY_PATH}")  
+        result = subprocess.run(
+            [TRIVY_PATH, "fs", input_folder, "--include-dev-deps", "-f", "json", "-o", vulnerability_file], 
+            check=True, capture_output=True, text=True
+        )
         print(f"✅ Vulnerability report saved to {vulnerability_file}")  
+        print("📦 Trivy Output:", result.stdout)
         return vulnerability_file  
     except subprocess.CalledProcessError as e:  
-        print(f"❌ Error generating vulnerability report: {e}")  
+        print(f"❌ Error generating vulnerability report: {e}")
+        print("🐛 Trivy stderr:", e.stderr)
+        print("🐛 Trivy stdout:", e.stdout)
         return None  
+ 
 
 def main():  
     """  
