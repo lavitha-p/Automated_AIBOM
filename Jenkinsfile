@@ -94,7 +94,7 @@ Write-Host "✅ Syft and Trivy installed successfully!"
 
 
 echo "🚀 Running AIBOM generator..."
-bat "python \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\""
+bat '"C:\\Users\\Lavi\\AppData\\Local\\Programs\\Python\\Python311\\python.exe" "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model\\generate_aibom.py" --model-path "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model"'
 
 echo "📁 Creating reports directory..."
 bat "mkdir \"${REPORT_DIR}\""
