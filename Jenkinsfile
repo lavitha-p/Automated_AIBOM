@@ -62,19 +62,24 @@ pipeline {
                 script {
                     bat "mkdir \"${TOOLS_DIR}\""
 
-                    echo "✅ Syft & Trivy Installer Stage 💅"
-
 powershell '''
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # --- SYFT INSTALL ---
 Write-Host "🔧 Downloading Syft for Windows..."
+$syftUrl = "https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe"
+$syftPath = "${env:TOOLS_DIR}\\syft.exe"
+
 $attempts = 0
 $success = $false
 while (-not $success -and $attempts -lt 3) {
     try {
-        Invoke-WebRequest -Uri "https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe" -OutFile "${env:TOOLS_DIR}\\syft.exe"
-        $success = $true
+        & curl.exe -L -o "$syftPath" "$syftUrl"
+        if (Test-Path "$syftPath") {
+            $success = $true
+        } else {
+            throw "Download failed"
+        }
     } catch {
         $attempts++
         Start-Sleep -Seconds 5
@@ -85,13 +90,20 @@ Write-Host "✅ Syft installed."
 
 # --- TRIVY INSTALL ---
 Write-Host "🔧 Downloading Trivy for Windows..."
+$trivyZipUrl = "https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_windows-64bit.zip"
+$trivyZipPath = "${env:TOOLS_DIR}\\trivy.zip"
+
 $attempts = 0
 $success = $false
 while (-not $success -and $attempts -lt 3) {
     try {
-        Invoke-WebRequest -Uri "https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_windows-64bit.zip" -OutFile "${env:TOOLS_DIR}\\trivy.zip"
-        Expand-Archive -Path "${env:TOOLS_DIR}\\trivy.zip" -DestinationPath "${env:TOOLS_DIR}" -Force
-        $success = $true
+        & curl.exe -L -o "$trivyZipPath" "$trivyZipUrl"
+        if (Test-Path "$trivyZipPath") {
+            Expand-Archive -Path "$trivyZipPath" -DestinationPath "${env:TOOLS_DIR}" -Force
+            $success = $true
+        } else {
+            throw "Download failed"
+        }
     } catch {
         $attempts++
         Start-Sleep -Seconds 5
@@ -100,6 +112,7 @@ while (-not $success -and $attempts -lt 3) {
 if (-not $success) { throw "❌ Failed to download Trivy!" }
 Write-Host "✅ Trivy installed."
 '''
+
 
 echo "🔍 Verifying Syft and Trivy..."
 bat """
