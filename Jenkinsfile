@@ -77,11 +77,11 @@ New-Item -ItemType Directory -Force -Path $toolsDir
 
 # ✅ SYFT download
 $syftUrl = "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
-Invoke-WebRequest -Uri $syftUrl -OutFile $syftExePath
+curl.exe -L -o "$syftExePath" "$syftUrl"
 
 # ✅ TRIVY download
 $trivyUrl = "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
-Invoke-WebRequest -Uri $trivyUrl -OutFile $trivyZipPath
+curl.exe -L -o "$trivyZipPath" "$trivyUrl"
 Expand-Archive -Path $trivyZipPath -DestinationPath $trivyExtractedDir -Force
 
 # ✅ Update PATH for current session
