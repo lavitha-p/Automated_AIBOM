@@ -65,48 +65,53 @@ pipeline {
 powershell '''
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Paths
+# --- SYFT INSTALL ---
+Write-Host "🔧 Downloading Syft for Windows..."
 $syftUrl = "https://github.com/anchore/syft/releases/latest/download/syft_windows_amd64.exe"
 $syftPath = "${env:TOOLS_DIR}\\syft.exe"
-$trivyUrl = "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_windows-64bit.zip"
-$trivyZip = "${env:TOOLS_DIR}\\trivy.zip"
-$trivyExtractPath = "${env:TOOLS_DIR}"
 
-# Function to download files with retries
-function Download-WithRetry($url, $dest, $minSize = 10000) {
-    $attempts = 0
-    $success = $false
-    while (-not $success -and $attempts -lt 3) {
-        try {
-            Write-Host "📥 Attempting download: $url"
-            & curl.exe -L -o "$dest" "$url"
-            if ((Test-Path "$dest") -and ((Get-Item "$dest").Length -gt $minSize)) {
-                Write-Host "✅ Successfully downloaded to $dest"
-                $success = $true
-            } else {
-                throw "Download incomplete or too small"
-            }
-        } catch {
-            Write-Host "❗ Attempt $($attempts+1) failed"
-            Start-Sleep -Seconds 5
-            $attempts++
+$attempts = 0
+$success = $false
+while (-not $success -and $attempts -lt 3) {
+    try {
+        & curl.exe -L -o "$syftPath" "$syftUrl"
+        if (Test-Path "$syftPath") {
+            $success = $true
+        } else {
+            throw "Download failed"
         }
-    }
-    if (-not $success) {
-        throw "❌ Failed to download from $url"
+    } catch {
+        $attempts++
+        Start-Sleep -Seconds 5
     }
 }
+if (-not $success) { throw "❌ Failed to download Syft!" }
+Write-Host "✅ Syft installed."
 
-# Download Syft
-Write-Host "🔧 Downloading Syft for Windows..."
-Download-WithRetry $syftUrl $syftPath 10000
-
-# Download and Extract Trivy
+# --- TRIVY INSTALL ---
 Write-Host "🔧 Downloading Trivy for Windows..."
-Download-WithRetry $trivyUrl $trivyZip 10000
+$trivyUrl = "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
 
-Write-Host "📦 Extracting Trivy..."
-Expand-Archive -Path "$trivyZip" -DestinationPath "$trivyExtractPath" -Force
+$trivyZipPath = "${env:TOOLS_DIR}\\trivy.zip"
+
+$attempts = 0
+$success = $false
+while (-not $success -and $attempts -lt 3) {
+    try {
+        & curl.exe -L -o "$trivyZipPath" "$trivyZipUrl"
+        if (Test-Path "$trivyZipPath") {
+            Expand-Archive -Path "$trivyZipPath" -DestinationPath "${env:TOOLS_DIR}" -Force
+            $success = $true
+        } else {
+            throw "Download failed"
+        }
+    } catch {
+        $attempts++
+        Start-Sleep -Seconds 5
+    }
+}
+if (-not $success) { throw "❌ Failed to download Trivy!" }
+Write-Host "✅ Trivy installed."
 '''
 
 echo "🔍 Verifying Syft and Trivy..."
