@@ -8,9 +8,10 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--output_dir", default="reports", help="Output directory for all reports")
-
+parser.add_argument("--model-path", required=True, help="Path to the model directory")
 args = parser.parse_args()
+model_path = args.model_path
+
 if not args.model_path:
     print("❌ Error: LOCAL_PATH is not set. Please provide it in the pipeline.")
     exit(1)
