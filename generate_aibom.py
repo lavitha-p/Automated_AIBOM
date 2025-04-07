@@ -130,7 +130,9 @@ def main():
     generate_sbom(model_path, reports_folder)
     generate_vulnerability_report(model_path, reports_folder)
 
-    if __name__ == "__main__":
+   # End of your main() function here...
+
+if __name__ == "__main__":
     try:
         main()
     except Exception as e:
@@ -138,4 +140,5 @@ def main():
         import traceback
         traceback.print_exc()
         exit(1)
+
 
