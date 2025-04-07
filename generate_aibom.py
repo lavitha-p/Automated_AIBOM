@@ -8,7 +8,8 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--model-path", required=True, help="Path to the model directory")
+parser.add_argument("--output-dir", default="reports", help="Path to save reports (default: ./reports)")
+
 args = parser.parse_args()
 model_path = args.model_path
 
@@ -121,19 +122,20 @@ def main():
         print(f"❌ Error: Model directory does not exist - {model_path}")
         return
 
-    reports_folder = args.output_dir
-    os.makedirs(reports_folder, exist_ok=True)
+        reports_folder = os.path.join(model_path, args.output_dir)
+        os.makedirs(reports_folder, exist_ok=True)
+
 
     generate_aibom(model_path, reports_folder)
     generate_sbom(model_path, reports_folder)
     generate_vulnerability_report(model_path, reports_folder)
 
     if __name__ == "__main__":
-        try:
-            main()
-        except Exception as e:
-            print(f"🔥 Script crashed with error: {e}")
-            import traceback
-            traceback.print_exc()
-            exit(1)
+    try:
+        main()
+    except Exception as e:
+        print(f"🔥 Script crashed with error: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)
 
