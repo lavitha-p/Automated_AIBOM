@@ -108,30 +108,24 @@ def generate_vulnerability_report(input_folder, reports_folder):
         return None  
  
 
-def main():  
-    """  
-    Run full pipeline:  
-    1. Install Syft  
-    2. Generate AIBOM  
-    3. Generate SBOM using Syft  
-    4. Generate Vulnerability Report using Trivy  
-    """  
+def main():
+    """
+    Run full pipeline:
+    1. Generate AIBOM
+    2. Generate SBOM using Syft
+    3. Generate Vulnerability Report using Trivy
+    """
 
     if not os.path.exists(model_path):
-    print(f"❌ Error: Model directory does not exist - {model_path}")
-    return
+        print(f"❌ Error: Model directory does not exist - {model_path}")
+        return
 
-    # Create reports folder  
-   # reports_folder = os.path.join(local_path, "reports")
     reports_folder = args.output_dir
     os.makedirs(reports_folder, exist_ok=True)
-  
 
-    # Install Syft before generating SBOM  
-    # install_syft()  
-generate_aibom(model_path, reports_folder)
-generate_sbom(model_path, reports_folder)
-generate_vulnerability_report(model_path, reports_folder)  
+    generate_aibom(model_path, reports_folder)
+    generate_sbom(model_path, reports_folder)
+    generate_vulnerability_report(model_path, reports_folder)
 
 if __name__ == "__main__":
     try:
