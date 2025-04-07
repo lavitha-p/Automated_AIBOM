@@ -8,22 +8,14 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--model-path", required=True, help="Path to the model directory")
+parser.add_argument("--output_dir", default="reports", help="Output directory for all reports")
+
 args = parser.parse_args()
 if not args.model_path:
     print("❌ Error: LOCAL_PATH is not set. Please provide it in the pipeline.")
     exit(1)
 model_path = args.model_path
 print(f"✅ Using model path: {model_path}")
-
-
-# Get local_path from environment variables (pipeline parameters)
-local_path = os.getenv("MODEL_DIR")
-
-if not local_path:
-    print("❌ Error: LOCAL_PATH is not set. Please provide it in the pipeline.")
-    exit(1)
-
 # def install_syft():  
   #  """Installs Syft if not already installed."""  
    # try:  
@@ -125,25 +117,21 @@ def main():
     4. Generate Vulnerability Report using Trivy  
     """  
 
-    if not os.path.exists(local_path):  
-        print(f"❌ Error: Model directory does not exist - {local_path}")  
-        return  
+    if not os.path.exists(model_path):
+    print(f"❌ Error: Model directory does not exist - {model_path}")
+    return
 
     # Create reports folder  
-    reports_folder = os.path.join(local_path, "reports")  
-    os.makedirs(reports_folder, exist_ok=True)  
+   # reports_folder = os.path.join(local_path, "reports")
+    reports_folder = args.output_dir
+    os.makedirs(reports_folder, exist_ok=True)
+  
 
     # Install Syft before generating SBOM  
     # install_syft()  
-
-    # Generate AIBOM  
-    generate_aibom(local_path, reports_folder)  
-
-    # Generate SBOM  
-    generate_sbom(local_path, reports_folder)  
-
-    # Generate Vulnerability Report  
-    generate_vulnerability_report(local_path, reports_folder)  
+generate_aibom(model_path, reports_folder)
+generate_sbom(model_path, reports_folder)
+generate_vulnerability_report(model_path, reports_folder)  
 
 if __name__ == "__main__":
     try:
