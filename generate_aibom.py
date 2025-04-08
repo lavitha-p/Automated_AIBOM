@@ -126,7 +126,14 @@ def main():
         reports_folder = os.path.join(model_path, args.output_dir)
         os.makedirs(reports_folder, exist_ok=True)
 
+    args = parser.parse_args()
+    model_path = args.model_path
+    output_dir = args.output_dir
 
+    print(f"✅ Using model path: {model_path}")
+    print(f"✅ Output will be saved to: {output_dir}")
+
+    reports_folder = output_dir  # 🔥 THIS IS THE FIX
     generate_aibom(model_path, reports_folder)
     generate_sbom(model_path, reports_folder)
     generate_vulnerability_report(model_path, reports_folder)
