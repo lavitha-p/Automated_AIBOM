@@ -85,8 +85,10 @@ $env:PATH += ";$toolsDir;$trivyExtractedDir"
 Write-Host "✅ Syft and Trivy installed successfully!"
 '''
 
-                    echo "🚀 Running AIBOM generator..."
-                    bat "\"C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\""
+        echo '🚀 Running AIBOM generator...'
+        bat """
+        "${env.PYTHON_PATH}" "${env.WORKSPACE}\\Model\\generate_aibom.py" --model-path "${env.WORKSPACE}\\Model" --output-dir "${env.WORKSPACE}\\Model\\reports"
+        """
 
                     echo "📁 Creating reports directory..."
                    bat 'if not exist "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model\\reports" mkdir "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model\\reports"'
@@ -96,14 +98,7 @@ Write-Host "✅ Syft and Trivy installed successfully!"
                 }
             }
         }
-        stage('Run AIBOM Generator') {
-    steps {
-        echo '🚀 Running AIBOM generator...'
-        bat """
-        "${env.PYTHON_PATH}" "${env.WORKSPACE}\\Model\\generate_aibom.py" --model-path "${env.WORKSPACE}\\Model" --output-dir "${env.WORKSPACE}\\Model\\reports"
-        """
-    }
-}
+    
 
 
         stage('Promote') {
