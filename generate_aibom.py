@@ -1,4 +1,5 @@
 import json  
+import argparse
 import os  
 import importlib.metadata  
 import subprocess  
@@ -111,6 +112,7 @@ def generate_vulnerability_report(input_folder, reports_folder):
         return None  
  
 
+
 def main():
     """
     Run full pipeline:
@@ -119,26 +121,26 @@ def main():
     3. Generate Vulnerability Report using Trivy
     """
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model-path', required=True, help='Path to the AI model directory')
+    parser.add_argument('--output-dir', required=True, help='Path to save reports')
+    args = parser.parse_args()
+
+    model_path = args.model_path
+    output_dir = args.output_dir
+
     if not os.path.exists(model_path):
         print(f"❌ Error: Model directory does not exist - {model_path}")
         return
 
-        reports_folder = os.path.join(model_path, args.output_dir)
-        os.makedirs(reports_folder, exist_ok=True)
-
-    args = parser.parse_args()
-    model_path = args.model_path
-    output_dir = args.output_dir
+    os.makedirs(output_dir, exist_ok=True)
 
     print(f"✅ Using model path: {model_path}")
     print(f"✅ Output will be saved to: {output_dir}")
 
-    reports_folder = output_dir  # 🔥 THIS IS THE FIX
-    generate_aibom(model_path, reports_folder)
-    generate_sbom(model_path, reports_folder)
-    generate_vulnerability_report(model_path, reports_folder)
-
-   # End of your main() function here...
+    generate_aibom(model_path, output_dir)
+    generate_sbom(model_path, output_dir)
+    generate_vulnerability_report(model_path, output_dir)
 
 if __name__ == "__main__":
     try:
@@ -148,5 +150,3 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
         exit(1)
-
-
