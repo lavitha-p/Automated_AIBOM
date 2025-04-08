@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         GIT_CREDENTIALS_ID = 'github-credentials'
+        PYTHON_PATH = 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\python.exe' // 🔥 YOU MISSED THIS
         MODEL_DIR = "${WORKSPACE}\\Model"
         SCRIPT_REPO = 'https://github.com/lavitha-p/Automated_AIBOM.git'
         REPORT_DIR = "${MODEL_DIR}\\reports"
@@ -16,35 +17,28 @@ pipeline {
 
     stages {
         stage('Build') {
-    steps {
-        script {
-            // 💅 Clean up old model folder if it exists
-            if (fileExists("${MODEL_DIR}")) {
-                echo "🧹 Cleaning existing model directory..."
-                bat "rmdir /s /q \"${MODEL_DIR}\""
+            steps {
+                script {
+                    if (fileExists("${MODEL_DIR}")) {
+                        echo "🧹 Cleaning existing model directory..."
+                        bat "rmdir /s /q \"${MODEL_DIR}\""
+                    }
+
+                    echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
+                    bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
+
+                    echo "🧾 Copying dataset and model info files into model directory..."
+                    bat "copy \"${env.WORKSPACE}\\dataset.json\" \"${MODEL_DIR}\\dataset.json\""
+                    bat "copy \"${env.WORKSPACE}\\model_info.json\" \"${MODEL_DIR}\\model_info.json\""
+
+                    if (!fileExists("${MODEL_DIR}\\dataset.json") || !fileExists("${MODEL_DIR}\\model_info.json")) {
+                        error "❌ Required files dataset.json or model_info.json not found!"
+                    }
+
+                    echo "✅ Build stage completed."
+                }
             }
-
-            // 📥 Clone GPT-2
-            echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-            bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
-
-            // 🫶 Copy dataset.json and model_info.json from this repo to Model/
-            echo "🧾 Copying dataset and model info files into model directory..."
-            bat "copy \"${env.WORKSPACE}\\dataset.json\" \"${MODEL_DIR}\\dataset.json\""
-            bat "copy \"${env.WORKSPACE}\\model_info.json\" \"${MODEL_DIR}\\model_info.json\""
-
-            // ✅ Validate
-            def datasetExists = fileExists("${MODEL_DIR}\\dataset.json")
-            def modelInfoExists = fileExists("${MODEL_DIR}\\model_info.json")
-            if (!datasetExists || !modelInfoExists) {
-                error "❌ Required files dataset.json or model_info.json not found!"
-            }
-
-            echo "✅ Build stage completed."
         }
-    }
-}
-
 
         stage('Deploy') {
             steps {
@@ -57,49 +51,38 @@ pipeline {
             }
         }
 
-                stage('Test') {
+        stage('Test') {
             steps {
                 script {
+                    echo "🧰 Setting up Syft and Trivy..."
+
                     bat "mkdir \"${TOOLS_DIR}\""
 
-powershell '''
-$workspace = "$env:WORKSPACE"
-$toolsDir = Join-Path -Path $workspace -ChildPath "tools"
-$syftExePath = Join-Path -Path $toolsDir -ChildPath "syft.exe"
-$trivyZipPath = Join-Path -Path $toolsDir -ChildPath "trivy.zip"
-$trivyExtractedDir = Join-Path -Path $toolsDir -ChildPath "trivy"
-$trivyExePath = Join-Path -Path $trivyExtractedDir -ChildPath "trivy.exe"
+                    powershell '''
+                    $toolsDir = "${env:TOOLS_DIR}"
+                    $syftExe = Join-Path $toolsDir "syft.exe"
+                    $trivyZip = Join-Path $toolsDir "trivy.zip"
+                    $trivyDir = Join-Path $toolsDir "trivy"
+                    $trivyExe = Join-Path $trivyDir "trivy.exe"
 
-New-Item -ItemType Directory -Force -Path $toolsDir
+                    curl.exe -L -o $syftExe "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
+                    curl.exe -L -o $trivyZip "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
+                    Expand-Archive -Path $trivyZip -DestinationPath $trivyDir -Force
 
-# ✅ SYFT download
-$syftUrl = "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
-curl.exe -L -o "$syftExePath" "$syftUrl"
+                    $env:PATH += ";$toolsDir;$trivyDir"
+                    Write-Host "✅ Syft and Trivy installed."
+                    '''
 
-# ✅ TRIVY download
-$trivyUrl = "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
-curl.exe -L -o "$trivyZipPath" "$trivyUrl"
-Expand-Archive -Path $trivyZipPath -DestinationPath $trivyExtractedDir -Force
+                    echo "📁 Ensuring reports directory exists..."
+                    bat "if not exist \"${REPORT_DIR}\" mkdir \"${REPORT_DIR}\""
 
-$env:PATH += ";$toolsDir;$trivyExtractedDir"
-Write-Host "✅ Syft and Trivy installed successfully!"
-'''
-
-        echo '🚀 Running AIBOM generator...'
-        bat """
-        "${env.PYTHON_PATH}" "${env.WORKSPACE}\\Model\\generate_aibom.py" --model-path "${env.WORKSPACE}\\Model" --output-dir "${env.WORKSPACE}\\Model\\reports"
-        """
-
-                    echo "📁 Creating reports directory..."
-                   bat 'if not exist "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model\\reports" mkdir "C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\generate\\Model\\reports"'
-
+                    echo "🚀 Running AIBOM generator..."
+                    bat "\"${env.PYTHON_PATH}\" \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\" --output-dir \"${REPORT_DIR}\""
 
                     echo "✅ Test stage completed."
                 }
             }
         }
-    
-
 
         stage('Promote') {
             steps {
@@ -120,10 +103,9 @@ Write-Host "✅ Syft and Trivy installed successfully!"
                         echo "⚠️ vulnerability.json not found. Skipping vulnerability check."
                     }
 
-                    echo "✅ Promote stage completed successfully."
-
+                    echo "✅ Promote stage completed."
                     echo "📢 CI/CD Pipeline completed successfully!"
-                    echo "Generated Reports:"
+                    echo "🧾 Generated Reports:"
                     bat "dir \"${REPORT_DIR}\""
                 }
             }
