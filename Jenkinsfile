@@ -96,6 +96,15 @@ Write-Host "✅ Syft and Trivy installed successfully!"
                 }
             }
         }
+        stage('Run AIBOM Generator') {
+    steps {
+        echo '🚀 Running AIBOM generator...'
+        bat """
+        "${env.PYTHON_PATH}" "${env.WORKSPACE}\\Model\\generate_aibom.py" --model-path "${env.WORKSPACE}\\Model" --output-dir "${env.WORKSPACE}\\Model\\reports"
+        """
+    }
+}
+
 
         stage('Promote') {
             steps {
