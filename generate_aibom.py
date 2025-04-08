@@ -8,9 +8,10 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--output-dir", default="reports", help="Path to save reports (default: ./reports)")
-
+parser.add_argument("--model-path", required=True, help="Path to the model directory")
+parser.add_argument("--output-dir", required=True, help="Path to save the generated reports")
 args = parser.parse_args()
+
 model_path = args.model_path
 
 if not args.model_path:
