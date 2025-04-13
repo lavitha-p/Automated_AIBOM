@@ -21,9 +21,8 @@ pipeline {
             steps {
                 script {
                     echo "🔥 Force cleanup of Model folder..."
-                    bat '''
-                        powershell -Command "Remove-Item -Path '${MODEL_DIR}' -Recurse -Force -ErrorAction SilentlyContinue"
-                    '''
+                   bat "powershell -Command \"Remove-Item -Recurse -Force -Path '${env.MODEL_DIR}' -ErrorAction SilentlyContinue\""
+
 
                     echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
                     bat """git clone ${params.MODEL_GIT_URL} "${MODEL_DIR}" """
