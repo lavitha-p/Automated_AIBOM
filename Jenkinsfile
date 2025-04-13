@@ -7,7 +7,6 @@ pipeline {
         MODEL_DIR = "${WORKSPACE}\\Model"
         SCRIPT_REPO = 'https://github.com/lavitha-p/Automated_AIBOM.git'
         TOOLS_DIR = "${MODEL_DIR}\\tools"
-
         TIMESTAMP = "${new Date().format('yyyyMMdd_HHmmss')}"
         REPORT_DIR = "${WORKSPACE}\\reports_${TIMESTAMP}"
     }
@@ -23,15 +22,15 @@ pipeline {
                 script {
                     echo "🔥 Force cleanup of Model folder..."
                     bat '''
-                        powershell -Command "Remove-Item -Path \"${MODEL_DIR}\" -Recurse -Force -ErrorAction SilentlyContinue"
+                        powershell -Command "Remove-Item -Path '${MODEL_DIR}' -Recurse -Force -ErrorAction SilentlyContinue"
                     '''
 
                     echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-                    bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
+                    bat """git clone ${params.MODEL_GIT_URL} "${MODEL_DIR}" """
 
                     echo "🧾 Copying dataset and model info files into model directory..."
-                    bat "copy \"${env.WORKSPACE}\\dataset.json\" \"${MODEL_DIR}\\dataset.json\""
-                    bat "copy \"${env.WORKSPACE}\\model_info.json\" \"${MODEL_DIR}\\model_info.json\""
+                    bat """copy "${env.WORKSPACE}\\dataset.json" "${MODEL_DIR}\\dataset.json" """
+                    bat """copy "${env.WORKSPACE}\\model_info.json" "${MODEL_DIR}\\model_info.json" """
 
                     if (!fileExists("${MODEL_DIR}\\dataset.json") || !fileExists("${MODEL_DIR}\\model_info.json")) {
                         error "❌ Required files dataset.json or model_info.json not found!"
@@ -46,8 +45,8 @@ pipeline {
             steps {
                 script {
                     echo "📥 Fetching AIBOM script..."
-                    bat "git clone ${SCRIPT_REPO} \"${MODEL_DIR}\\script\""
-                    bat "copy \"${MODEL_DIR}\\script\\generate_aibom.py\" \"${MODEL_DIR}\\""
+                    bat """git clone ${SCRIPT_REPO} "${MODEL_DIR}\\script" """
+                    bat """copy "${MODEL_DIR}\\script\\generate_aibom.py" "${MODEL_DIR}\\" """
                     echo "✅ Deploy stage completed."
                 }
             }
@@ -58,7 +57,7 @@ pipeline {
                 script {
                     echo "🧰 Installing Syft and Trivy..."
 
-                    bat "mkdir \"${TOOLS_DIR}\""
+                    bat """mkdir "${TOOLS_DIR}" """
 
                     powershell '''
                     $toolsDir = "${env:TOOLS_DIR}"
@@ -76,14 +75,14 @@ pipeline {
                     '''
 
                     echo "📦 Installing Python dependencies..."
-                    bat "\"${env.PYTHON_PATH}\" -m pip install --upgrade pip"
-                    bat "\"${env.PYTHON_PATH}\" -m pip install psutil pandas torch tensorflow"
+                    bat """ "${env.PYTHON_PATH}" -m pip install --upgrade pip """
+                    bat """ "${env.PYTHON_PATH}" -m pip install psutil pandas torch tensorflow """
 
                     echo "📁 Creating report folder: ${REPORT_DIR}"
-                    bat "mkdir \"${REPORT_DIR}\""
+                    bat """mkdir "${REPORT_DIR}" """
 
                     echo "🚀 Running AIBOM generator..."
-                    bat "\"${env.PYTHON_PATH}\" \"${MODEL_DIR}\\generate_aibom.py\" --dataset \"${MODEL_DIR}\\dataset.json\" --modelinfo \"${MODEL_DIR}\\model_info.json\" --modelfile \"${MODEL_DIR}\\model.pt\""
+                    bat """ "${env.PYTHON_PATH}" "${MODEL_DIR}\\generate_aibom.py" --dataset "${MODEL_DIR}\\dataset.json" --modelinfo "${MODEL_DIR}\\model_info.json" --modelfile "${MODEL_DIR}\\model.pt" """
 
                     echo "✅ Test stage completed."
                 }
