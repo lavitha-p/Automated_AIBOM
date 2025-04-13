@@ -3,11 +3,13 @@ pipeline {
 
     environment {
         GIT_CREDENTIALS_ID = 'github-credentials'
-        PYTHON_PATH = 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\python.exe' // 🔥 YOU MISSED THIS
+        PYTHON_PATH = 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\python.exe'
         MODEL_DIR = "${WORKSPACE}\\Model"
         SCRIPT_REPO = 'https://github.com/lavitha-p/Automated_AIBOM.git'
-        REPORT_DIR = "${MODEL_DIR}\\reports"
         TOOLS_DIR = "${MODEL_DIR}\\tools"
+
+        TIMESTAMP = "${new Date().format('yyyyMMdd_HHmmss')}"
+        REPORT_DIR = "${WORKSPACE}\\reports_${TIMESTAMP}"
     }
 
     parameters {
@@ -19,10 +21,10 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    if (fileExists("${MODEL_DIR}")) {
-                        echo "🧹 Cleaning existing model directory..."
-                        bat "rmdir /s /q \"${MODEL_DIR}\""
-                    }
+                    echo "🔥 Force cleanup of Model folder..."
+                    bat '''
+                        powershell -Command "Remove-Item -Path \"${MODEL_DIR}\" -Recurse -Force -ErrorAction SilentlyContinue"
+                    '''
 
                     echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
                     bat "git clone ${params.MODEL_GIT_URL} \"${MODEL_DIR}\""
@@ -45,72 +47,79 @@ pipeline {
                 script {
                     echo "📥 Fetching AIBOM script..."
                     bat "git clone ${SCRIPT_REPO} \"${MODEL_DIR}\\script\""
-                    bat "copy \"${MODEL_DIR}\\script\\generate_aibom.py\" \"${MODEL_DIR}\\\""
+                    bat "copy \"${MODEL_DIR}\\script\\generate_aibom.py\" \"${MODEL_DIR}\\""
                     echo "✅ Deploy stage completed."
                 }
             }
         }
 
-stage('Test') {
-    steps {
-        script {
-            echo "🧰 Installing Syft and Trivy..."
+        stage('Test') {
+            steps {
+                script {
+                    echo "🧰 Installing Syft and Trivy..."
 
-            bat "mkdir \"${TOOLS_DIR}\""
+                    bat "mkdir \"${TOOLS_DIR}\""
 
-            powershell '''
-            $toolsDir = "${env:TOOLS_DIR}"
-            $syftExe = Join-Path $toolsDir "syft.exe"
-            $trivyZip = Join-Path $toolsDir "trivy.zip"
-            $trivyDir = Join-Path $toolsDir "trivy"
-            $trivyExe = Join-Path $trivyDir "trivy.exe"
+                    powershell '''
+                    $toolsDir = "${env:TOOLS_DIR}"
+                    $syftExe = Join-Path $toolsDir "syft.exe"
+                    $trivyZip = Join-Path $toolsDir "trivy.zip"
+                    $trivyDir = Join-Path $toolsDir "trivy"
+                    $trivyExe = Join-Path $trivyDir "trivy.exe"
 
-            curl.exe -L -o $syftExe "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
-            curl.exe -L -o $trivyZip "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
-            Expand-Archive -Path $trivyZip -DestinationPath $trivyDir -Force
+                    curl.exe -L -o $syftExe "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
+                    curl.exe -L -o $trivyZip "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
+                    Expand-Archive -Path $trivyZip -DestinationPath $trivyDir -Force
 
-            $env:PATH += ";$toolsDir;$trivyDir"
-            Write-Host "✅ Syft and Trivy installed."
-            '''
+                    $env:PATH += ";$toolsDir;$trivyDir"
+                    Write-Host "✅ Syft and Trivy installed."
+                    '''
 
-            echo "📦 Installing Python dependencies..."
-            bat "\"${env.PYTHON_PATH}\" -m pip install --upgrade pip"
-            bat "\"${env.PYTHON_PATH}\" -m pip install psutil pandas"
+                    echo "📦 Installing Python dependencies..."
+                    bat "\"${env.PYTHON_PATH}\" -m pip install --upgrade pip"
+                    bat "\"${env.PYTHON_PATH}\" -m pip install psutil pandas torch tensorflow"
 
-            echo "📁 Creating report folder: ${REPORT_DIR}"
-            bat "mkdir \"${REPORT_DIR}\""
+                    echo "📁 Creating report folder: ${REPORT_DIR}"
+                    bat "mkdir \"${REPORT_DIR}\""
 
-            echo "🚀 Running AIBOM generator..."
-            bat "\"${env.PYTHON_PATH}\" \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\" --output-dir \"${REPORT_DIR}\""
+                    echo "🚀 Running AIBOM generator..."
+                    bat "\"${env.PYTHON_PATH}\" \"${MODEL_DIR}\\generate_aibom.py\" --dataset \"${MODEL_DIR}\\dataset.json\" --modelinfo \"${MODEL_DIR}\\model_info.json\" --modelfile \"${MODEL_DIR}\\model.pt\""
 
-            echo "✅ Test stage completed."
+                    echo "✅ Test stage completed."
+                }
+            }
         }
-    }
-}
 
         stage('Promote') {
             steps {
                 script {
-                    def vulnReportPath = "${REPORT_DIR}\\vulnerability.json"
-                    def aibomExists = fileExists("${REPORT_DIR}\\aibom.json")
-                    def sbomExists = fileExists("${REPORT_DIR}\\sbom.json")
+                    def vulnReportPath = "${REPORT_DIR}\\vulnerability_report.json"
+                    def aibomPath = "${REPORT_DIR}\\aibom.json"
+                    def sbomPath = "${REPORT_DIR}\\sbom.json"
+                    def auditPath = "${REPORT_DIR}\\audit_log.json"
+
+                    def aibomExists = fileExists(aibomPath)
+                    def sbomExists = fileExists(sbomPath)
                     def vulnExists = fileExists(vulnReportPath)
 
-                    if (vulnExists) {
+                    if (aibomExists && sbomExists && vulnExists) {
                         def vulnReport = readFile(vulnReportPath)
                         if (vulnReport =~ /LOW|MEDIUM|HIGH|CRITICAL/) {
-                            echo "⚠️ WARNING: Model has vulnerabilities! Not ready for production."
+                            echo "⚠️ WARNING: Model has vulnerabilities! Review required before promotion."
                         } else {
-                            echo "✅ Model passes security checks."
+                            echo "✅ Model passes all security checks. Good to promote."
                         }
                     } else {
-                        echo "⚠️ vulnerability.json not found. Skipping vulnerability check."
+                        echo "⚠️ One or more reports are missing. Manual review needed."
+                    }
+
+                    echo "📢 Reports saved to: ${REPORT_DIR}"
+                    echo "🧾 Audit Summary:"
+                    if (fileExists(auditPath)) {
+                        echo readFile(auditPath)
                     }
 
                     echo "✅ Promote stage completed."
-                    echo "📢 CI/CD Pipeline completed successfully!"
-                    echo "🧾 Generated Reports:"
-                    bat "dir \"${REPORT_DIR}\""
                 }
             }
         }
@@ -118,10 +127,10 @@ stage('Test') {
 
     post {
         failure {
-            echo "❌ Pipeline failed. Check logs for details."
+            echo "❌ Pipeline failed. Check logs and reports in ${REPORT_DIR}."
         }
         success {
-            echo "✅ Pipeline executed successfully."
+            echo "✅ Pipeline executed successfully! All reports are in: ${REPORT_DIR}"
         }
     }
 }
