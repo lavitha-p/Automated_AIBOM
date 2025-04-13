@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         GIT_CREDENTIALS_ID = 'github-credentials'
-        PYTHON_PATH = 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python313\\python.exe'
+        PYTHON_PATH = 'C:\Users\HP\AppData\Local\Programs\Python\Python310\python.exe'
         MODEL_DIR = "${WORKSPACE}\\Model"
         SCRIPT_REPO = 'https://github.com/lavitha-p/Automated_AIBOM.git'
         TOOLS_DIR = "${MODEL_DIR}\\tools"
