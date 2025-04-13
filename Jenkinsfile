@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        timestamps()
+    }
+
     environment {
         GIT_CREDENTIALS_ID = 'github-credentials'
         PYTHON_PATH = 'C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python310\\python.exe'
@@ -22,8 +26,8 @@ pipeline {
             steps {
                 script {
                     echo "🔥 Force cleanup of Model folder..."
-                   bat "powershell -Command \"Remove-Item -Recurse -Force -Path '${env.MODEL_DIR}' -ErrorAction SilentlyContinue\""
-
+                    bat "powershell -Command \"Remove-Item -Recurse -Force -Path '${env.MODEL_DIR}' -ErrorAction SilentlyContinue\""
+                    bat "mkdir \"${env.MODEL_DIR}\""
 
                     echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
                     bat """git clone ${params.MODEL_GIT_URL} "${MODEL_DIR}" """
@@ -85,7 +89,7 @@ pipeline {
                     bat """
 "${PYTHON_PATH}" "${WORKSPACE}\\Model\\generate_aibom.py" ^
 --model-path "${WORKSPACE}\\Model" ^
---output-dir "${WORKSPACE}\\reports_${env.RUN_TIMESTAMP}"
+--output-dir "${REPORT_DIR}"
 """
 
                     echo "✅ Test stage completed."
