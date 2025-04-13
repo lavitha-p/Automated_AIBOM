@@ -82,7 +82,11 @@ pipeline {
                     bat """mkdir "${REPORT_DIR}" """
 
                     echo "🚀 Running AIBOM generator..."
-                    bat """ "${env.PYTHON_PATH}" "${MODEL_DIR}\\generate_aibom.py" --dataset "${MODEL_DIR}\\dataset.json" --modelinfo "${MODEL_DIR}\\model_info.json" --modelfile "${MODEL_DIR}\\model.pt" """
+                    bat """
+"${PYTHON_PATH}" "${WORKSPACE}\\Model\\generate_aibom.py" ^
+--model-path "${WORKSPACE}\\Model" ^
+--output-dir "${WORKSPACE}\\reports_${env.RUN_TIMESTAMP}"
+"""
 
                     echo "✅ Test stage completed."
                 }
