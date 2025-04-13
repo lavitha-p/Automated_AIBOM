@@ -51,38 +51,42 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                script {
-                    echo "🧰 Setting up Syft and Trivy..."
+stage('Test') {
+    steps {
+        script {
+            echo "🧰 Installing Syft and Trivy..."
 
-                    bat "mkdir \"${TOOLS_DIR}\""
+            bat "mkdir \"${TOOLS_DIR}\""
 
-                    powershell '''
-                    $toolsDir = "${env:TOOLS_DIR}"
-                    $syftExe = Join-Path $toolsDir "syft.exe"
-                    $trivyZip = Join-Path $toolsDir "trivy.zip"
-                    $trivyDir = Join-Path $toolsDir "trivy"
-                    $trivyExe = Join-Path $trivyDir "trivy.exe"
+            powershell '''
+            $toolsDir = "${env:TOOLS_DIR}"
+            $syftExe = Join-Path $toolsDir "syft.exe"
+            $trivyZip = Join-Path $toolsDir "trivy.zip"
+            $trivyDir = Join-Path $toolsDir "trivy"
+            $trivyExe = Join-Path $trivyDir "trivy.exe"
 
-                    curl.exe -L -o $syftExe "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
-                    curl.exe -L -o $trivyZip "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
-                    Expand-Archive -Path $trivyZip -DestinationPath $trivyDir -Force
+            curl.exe -L -o $syftExe "https://github.com/anchore/syft/releases/download/v1.2.0/syft_1.2.0_windows_amd64.exe"
+            curl.exe -L -o $trivyZip "https://github.com/aquasecurity/trivy/releases/download/v0.51.1/trivy_0.51.1_Windows-64bit.zip"
+            Expand-Archive -Path $trivyZip -DestinationPath $trivyDir -Force
 
-                    $env:PATH += ";$toolsDir;$trivyDir"
-                    Write-Host "✅ Syft and Trivy installed."
-                    '''
+            $env:PATH += ";$toolsDir;$trivyDir"
+            Write-Host "✅ Syft and Trivy installed."
+            '''
 
-                    echo "📁 Ensuring reports directory exists..."
-                    bat "if not exist \"${REPORT_DIR}\" mkdir \"${REPORT_DIR}\""
+            echo "📦 Installing Python dependencies..."
+            bat "\"${env.PYTHON_PATH}\" -m pip install --upgrade pip"
+            bat "\"${env.PYTHON_PATH}\" -m pip install psutil pandas"
 
-                    echo "🚀 Running AIBOM generator..."
-                    bat "\"${env.PYTHON_PATH}\" \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\" --output-dir \"${REPORT_DIR}\""
+            echo "📁 Creating report folder: ${REPORT_DIR}"
+            bat "mkdir \"${REPORT_DIR}\""
 
-                    echo "✅ Test stage completed."
-                }
-            }
+            echo "🚀 Running AIBOM generator..."
+            bat "\"${env.PYTHON_PATH}\" \"${MODEL_DIR}\\generate_aibom.py\" --model-path \"${MODEL_DIR}\" --output-dir \"${REPORT_DIR}\""
+
+            echo "✅ Test stage completed."
         }
+    }
+}
 
         stage('Promote') {
             steps {
