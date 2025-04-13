@@ -23,27 +23,24 @@ pipeline {
 
     stages {
         stage('Build') {
-            steps {
-                script {
-                    echo "🔥 Force cleanup of Model folder..."
-                    bat "powershell -Command \"Remove-Item -Recurse -Force -Path '${env.MODEL_DIR}' -ErrorAction SilentlyContinue\""
-                    bat "mkdir \"${env.MODEL_DIR}\""
+  steps {
+    script {
+      echo "🔥 Force cleanup of Model folder..."
+      bat 'powershell -Command "Remove-Item -Recurse -Force -Path \'${WORKSPACE}\\Model\' -ErrorAction SilentlyContinue"'
 
-                    echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-                    bat """git clone ${params.MODEL_GIT_URL} "${MODEL_DIR}" """
+      if (params.MODEL_GIT_URL?.trim()) {
+        echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
+        bat "git clone ${params.MODEL_GIT_URL} Model"
+      } else if (params.MODEL_LOCAL_PATH?.trim()) {
+        echo "📁 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
+        bat "xcopy /E /I /Y \"${params.MODEL_LOCAL_PATH}\" \"${WORKSPACE}\\Model\""
+      } else {
+        error "❌ No model source provided! Please provide either MODEL_GIT_URL or MODEL_LOCAL_PATH."
+      }
+    }
+  }
+}
 
-                    echo "🧾 Copying dataset and model info files into model directory..."
-                    bat """copy "${env.WORKSPACE}\\dataset.json" "${MODEL_DIR}\\dataset.json" """
-                    bat """copy "${env.WORKSPACE}\\model_info.json" "${MODEL_DIR}\\model_info.json" """
-
-                    if (!fileExists("${MODEL_DIR}\\dataset.json") || !fileExists("${MODEL_DIR}\\model_info.json")) {
-                        error "❌ Required files dataset.json or model_info.json not found!"
-                    }
-
-                    echo "✅ Build stage completed."
-                }
-            }
-        }
 
         stage('Deploy') {
             steps {
