@@ -54,10 +54,15 @@ pipeline {
 }
             stage('Security Scan') {
   steps {
-    sh 'python generate_aibom.py --model-path model_dir --output-dir reports'
+    script {
+        echo "🐍 Starting AIBOM + SBOM Security Scan..."
+        bat 'python generate_aibom.py --model-path model_dir --output-dir reports'
+      
+    }
     archiveArtifacts artifacts: 'reports/merged_vulnerabilities.json', onlyIfSuccessful: true
   }
 }
+
 
 
      stage('Deploy') {
