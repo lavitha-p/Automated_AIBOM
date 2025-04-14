@@ -28,7 +28,7 @@ pipeline {
         script {
             echo "🔥 Force cleanup of Model folder..."
             
-            // Fixed cleanup: ensuring even hidden files/folders are removed
+            // Fixed cleanup with proper PowerShell execution
             bat '''powershell -Command "if (Test-Path '${WORKSPACE}\\Model') { 
                     Remove-Item -Recurse -Force -Path '${WORKSPACE}\\Model'; 
                     Write-Host '✅ Model folder cleaned up' 
@@ -46,6 +46,7 @@ pipeline {
         }
     }
 }
+
 
 
         stage('Deploy') {
