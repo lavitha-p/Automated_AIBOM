@@ -54,14 +54,10 @@ pipeline {
 }
 stage('Security Scan') {
   steps {
-    bat '"C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" generate_aibom.py --model-path model_dir --output-dir reports'
+    bat '"C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" generate_aibom.py --model-path Model --output-dir reports'
     archiveArtifacts artifacts: 'reports/merged_vulnerabilities.json', onlyIfSuccessful: true
   }
 }
-
-
-
-
      stage('Deploy') {
             steps {
                 script {
