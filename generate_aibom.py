@@ -1,13 +1,13 @@
-import json  
-import argparse  
-import os  
-import importlib.metadata  
-import subprocess  
-import hashlib  
-import platform  
-import psutil  
-from datetime import datetime  
-import sys  
+import json
+import argparse
+import os
+import importlib.metadata
+import subprocess
+import hashlib
+import platform
+import psutil
+from datetime import datetime
+import sys
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -25,85 +25,84 @@ if not os.path.exists(model_path):
     exit(1)
 
 # ---------------------------- UTILS ----------------------------
+def calculate_file_hash(file_path):
+    if not os.path.exists(file_path):
+        return "N/A"
+    hasher = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        hasher.update(f.read())
+    return hasher.hexdigest()
 
-def calculate_file_hash(file_path):  
-    if not os.path.exists(file_path):  
-        return "N/A"  
-    hasher = hashlib.sha256()  
-    with open(file_path, "rb") as f:  
-        hasher.update(f.read())  
-    return hasher.hexdigest()  
+def read_requirements(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            packages = [line.strip() for line in f.readlines() if line.strip()]
+        installed = {d.metadata["Name"].lower(): d.version for d in importlib.metadata.distributions()}
+        return {pkg: installed.get(pkg.lower(), "Not Installed") for pkg in packages}
+    return {}
 
-def read_requirements(file_path):  
-    if os.path.exists(file_path):  
-        with open(file_path, "r") as f:  
-            packages = [line.strip() for line in f.readlines() if line.strip()]  
-        installed = {d.metadata["Name"].lower(): d.version for d in importlib.metadata.distributions()}  
-        return {pkg: installed.get(pkg.lower(), "Not Installed") for pkg in packages}  
-    return {}  
+def read_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
-def read_json(file_path):  
-    if os.path.exists(file_path):  
-        with open(file_path, "r", encoding="utf-8") as f:  
-            return json.load(f)  
-    return {}  
+def extract_model_metadata(model_file):
+    return {
+        "File Path": model_file,
+        "Size (KB)": os.path.getsize(model_file) / 1024 if os.path.exists(model_file) else "N/A",
+        "SHA-256 Hash": calculate_file_hash(model_file)
+    }
 
-def extract_model_metadata(model_file):  
-    return {  
-        "File Path": model_file,  
-        "Size (KB)": os.path.getsize(model_file) / 1024 if os.path.exists(model_file) else "N/A",  
-        "SHA-256 Hash": calculate_file_hash(model_file)  
-    }  
+def extract_dataset_metadata(dataset_path):
+    try:
+        import pandas as pd
+        df = pd.read_csv(dataset_path)
+        return {
+            "Shape": df.shape,
+            "Columns": list(df.columns),
+            "Missing Values": df.isnull().sum().to_dict(),
+            "Types": df.dtypes.astype(str).to_dict(),
+        }
+    except Exception as e:
+        print(f"⚠️ Dataset metadata extraction failed: {e}")
+        return {}
 
-def extract_dataset_metadata(dataset_path):  
-    try:  
-        import pandas as pd  
-        df = pd.read_csv(dataset_path)  
-        return {  
-            "Shape": df.shape,  
-            "Columns": list(df.columns),  
-            "Missing Values": df.isnull().sum().to_dict(),  
-            "Types": df.dtypes.astype(str).to_dict(),  
-        }  
-    except Exception as e:  
-        print(f"⚠️ Dataset metadata extraction failed: {e}")  
-        return {}  
+def extract_model_architecture(model_file):
+    try:
+        with open(model_file, "r", encoding="utf-8") as f:
+            code = f.read()
+        return {
+            "Preview": code[:500] + "..." if len(code) > 500 else code,
+            "File Size": os.path.getsize(model_file)
+        }
+    except Exception as e:
+        print(f"⚠️ Model architecture preview failed: {e}")
+        return {}
 
-def extract_model_architecture(model_file):  
-    try:  
-        with open(model_file, "r", encoding="utf-8") as f:  
-            code = f.read()  
-        return {  
-            "Preview": code[:500] + "..." if len(code) > 500 else code,  
-            "File Size": os.path.getsize(model_file)  
-        }  
-    except Exception as e:  
-        print(f"⚠️ Model architecture preview failed: {e}")  
-        return {}  
+def extract_hardware_info():
+    return {
+        "OS": platform.platform(),
+        "CPU": platform.processor(),
+        "RAM (GB)": round(psutil.virtual_memory().total / (1024 ** 3), 2),
+        "Python Version": platform.python_version()
+    }
 
-def extract_hardware_info():  
-    return {  
-        "OS": platform.platform(),  
-        "CPU": platform.processor(),  
-        "RAM (GB)": round(psutil.virtual_memory().total / (1024 ** 3), 2),  
-        "Python Version": platform.python_version()  
-    }  
+def detect_basic_ai_risks(model_info):
+    risks = []
+    if "explainability" not in model_info:
+        risks.append("⚠️ Explainability not defined.")
+    if "bias_mitigation" not in model_info:
+        risks.append("⚠️ Bias mitigation not mentioned.")
+    return risks
 
-def detect_basic_ai_risks(model_info):  
-    risks = []  
-    if "explainability" not in model_info:  
-        risks.append("⚠️ Explainability not defined.")  
-    if "bias_mitigation" not in model_info:  
-        risks.append("⚠️ Bias mitigation not mentioned.")  
-    return risks  
+# ---------------------- MAIN GENERATION ----------------------
 
-# ---------------------------- MAIN GEN ----------------------------
-
-def generate_aibom(input_folder, reports_folder):  
-    requirements_file = os.path.join(input_folder, "requirements.txt")  
-    model_info_file = os.path.join(input_folder, "model_info.json")  
-    dataset_file = os.path.join(input_folder, "dataset.json")  
-    model_file = os.path.join(input_folder, "model.py")  
+def generate_aibom(input_folder, reports_folder):
+    requirements_file = os.path.join(input_folder, "requirements.txt")
+    model_info_file = os.path.join(input_folder, "model_info.json")
+    dataset_file = os.path.join(input_folder, "dataset.json")
+    model_file = os.path.join(input_folder, "model.py")
 
     aibom = {
         "AIBOM Version": "1.0.0",
@@ -119,40 +118,70 @@ def generate_aibom(input_folder, reports_folder):
     }
 
     os.makedirs(reports_folder, exist_ok=True)
+    aibom_file = os.path.join(reports_folder, "aibom.json")
+    with open(aibom_file, "w", encoding="utf-8") as f:
+        json.dump(aibom, f, indent=2)
+    print(f"✅ AIBOM saved to {aibom_file}")
+    return aibom_file
 
-    aibom_file = os.path.join(reports_folder, "aibom.json")  
-    with open(aibom_file, "w", encoding="utf-8") as f:  
-        json.dump(aibom, f, indent=2)  
+def generate_sbom(input_folder, reports_folder):
+    sbom_file = os.path.join(reports_folder, "sbom.json")
+    try:
+        subprocess.run(["syft", f"dir:{input_folder}", "-o", "json", "-q"], check=True, stdout=open(sbom_file, "w"))
+        print(f"✅ SBOM saved to {sbom_file}")
+        return sbom_file
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error generating SBOM: {e}")
+        return None
 
-    print(f"✅ AIBOM saved to {aibom_file}")  
-    return aibom_file  
-
-def generate_sbom(input_folder, reports_folder):  
-    sbom_file = os.path.join(reports_folder, "sbom.json")  
-    try:  
-        subprocess.run(["syft", f"dir:{input_folder}", "-o", "json", "-q"], check=True, stdout=open(sbom_file, "w"))  
-        print(f"✅ SBOM saved to {sbom_file}")  
-        return sbom_file  
-    except subprocess.CalledProcessError as e:  
-        print(f"❌ Error generating SBOM: {e}")  
-        return None  
-
-def generate_vulnerability_report(input_folder, reports_folder):  
-    vulnerability_file = os.path.join(reports_folder, "vulnerability.json")  
-    try:  
-        TRIVY_PATH = r"C:\Users\HP\scoop\shims\trivy.exe"  
-        result = subprocess.run(
-            [TRIVY_PATH, "fs", input_folder, "--include-dev-deps", "-f", "json", "-o", vulnerability_file], 
-            check=True, capture_output=True, text=True
+def run_trivy_scan(target, output_file):
+    try:
+        TRIVY_PATH = r"C:\Users\HP\scoop\shims\trivy.exe"
+        subprocess.run(
+            [TRIVY_PATH, "fs", target, "--include-dev-deps", "-f", "json", "-o", output_file],
+            check=True
         )
-        print(f"✅ Vulnerability report saved to {vulnerability_file}")  
-        return vulnerability_file  
-    except subprocess.CalledProcessError as e:  
-        print(f"❌ Error generating vulnerability report: {e}")
-        print("🐛 Trivy stderr:", e.stderr)
-        return None  
+        print(f"✅ Trivy scan saved to {output_file}")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Trivy scan failed: {e}")
 
-def generate_audit_log(output_dir):  
+def scan_sbom_artifacts(sbom_file, reports_folder):
+    sbom_data = read_json(sbom_file)
+    artifacts = sbom_data.get("artifacts", [])
+    vulnerabilities = []
+
+    for artifact in artifacts:
+        pkg = artifact.get("name", "")
+        version = artifact.get("version", "")
+        if not pkg or not version:
+            continue
+        try:
+            result = subprocess.run(
+                ["trivy", "image", f"{pkg}:{version}", "--format", "json"],
+                capture_output=True, text=True, check=True
+            )
+            json_output = json.loads(result.stdout)
+            vulnerabilities.extend(json_output.get("Results", []))
+        except Exception as e:
+            print(f"⚠️ Trivy SBOM artifact scan failed for {pkg}:{version} - {e}")
+
+    sbom_vuln_file = os.path.join(reports_folder, "vulnerability_sbom.json")
+    with open(sbom_vuln_file, "w", encoding="utf-8") as f:
+        json.dump({"Results": vulnerabilities}, f, indent=2)
+    return sbom_vuln_file
+
+def merge_vulnerability_reports(vuln1_path, vuln2_path, output_path):
+    def extract_vulns(path):
+        data = read_json(path)
+        return data.get("Results", [])
+
+    merged = extract_vulns(vuln1_path) + extract_vulns(vuln2_path)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump({"Results": merged}, f, indent=2)
+    print(f"🔐 Merged vulnerability report saved to {output_path}")
+
+def generate_audit_log(output_dir):
     log = {
         "event": "AIBOM + SBOM + Vulnerability Report Generated",
         "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -163,15 +192,22 @@ def generate_audit_log(output_dir):
         json.dump(log, f, indent=2)
     print("🧾 Audit log created.")
 
-# ---------------------------- MAIN ----------------------------
-
+# ---------------------- MAIN ----------------------
 def main():
     print(f"✅ Using model path: {model_path}")
     print(f"✅ Output will be saved to: {output_dir}")
 
     generate_aibom(model_path, output_dir)
-    generate_sbom(model_path, output_dir)
-    generate_vulnerability_report(model_path, output_dir)
+    sbom_file = generate_sbom(model_path, output_dir)
+
+    vuln_req_file = os.path.join(output_dir, "vulnerability_requirements.json")
+    run_trivy_scan(model_path, vuln_req_file)
+
+    vuln_sbom_file = scan_sbom_artifacts(sbom_file, output_dir)
+
+    merged_vuln_file = os.path.join(output_dir, "merged_vulnerabilities.json")
+    merge_vulnerability_reports(vuln_req_file, vuln_sbom_file, merged_vuln_file)
+
     generate_audit_log(output_dir)
 
 if __name__ == "__main__":
