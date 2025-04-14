@@ -24,25 +24,29 @@ pipeline {
 
     stages {
         stage('Build') {
-            steps {
-                script {
-                    echo "🔥 Force cleanup of Model folder..."
+    steps {
+        script {
+            echo "🔥 Force cleanup of Model folder..."
+            
+            // Fixed cleanup: ensuring even hidden files/folders are removed
+            bat '''powershell -Command "if (Test-Path '${WORKSPACE}\\Model') { 
+                    Remove-Item -Recurse -Force -Path '${WORKSPACE}\\Model'; 
+                    Write-Host '✅ Model folder cleaned up' 
+                }"'''
 
-                    // ✅ Fixed: Only delete if folder exists
-                    bat 'powershell -Command "if (Test-Path \'${WORKSPACE}\\Model\') { Remove-Item -Recurse -Force -Path \'${WORKSPACE}\\Model\' }"'
-
-                    if (params.MODEL_GIT_URL?.trim()) {
-                        echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
-                        bat "git clone ${params.MODEL_GIT_URL} Model"
-                    } else if (params.MODEL_LOCAL_PATH?.trim()) {
-                        echo "📁 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
-                        bat "xcopy /E /I /Y \"${params.MODEL_LOCAL_PATH}\" \"${WORKSPACE}\\Model\""
-                    } else {
-                        error "❌ No model source provided! Please provide either MODEL_GIT_URL or MODEL_LOCAL_PATH."
-                    }
-                }
+            if (params.MODEL_GIT_URL?.trim()) {
+                echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
+                bat "git clone ${params.MODEL_GIT_URL} Model"
+            } else if (params.MODEL_LOCAL_PATH?.trim()) {
+                echo "📁 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
+                bat "xcopy /E /I /Y \"${params.MODEL_LOCAL_PATH}\" \"${WORKSPACE}\\Model\""
+            } else {
+                error "❌ No model source provided! Please provide either MODEL_GIT_URL or MODEL_LOCAL_PATH."
             }
         }
+    }
+}
+
 
         stage('Deploy') {
             steps {
