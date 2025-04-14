@@ -28,18 +28,20 @@ pipeline {
         script {
             echo "🔥 Force cleanup of Model folder..."
 
-            // Ensure proper escaping of WORKSPACE for PowerShell
+            // Properly handle path with single quotes for PowerShell, using Groovy's interpolation for WORKSPACE
             bat """
                 powershell -Command "
-                if (Test-Path '${env.WORKSPACE}\\Model') {
-                    Remove-Item -Recurse -Force -Path '${env.WORKSPACE}\\Model'
+                \$modelPath = '${env.WORKSPACE}\\Model'
+                if (Test-Path \$modelPath) {
+                    Remove-Item -Recurse -Force -Path \$modelPath
                     Write-Host '✅ Model folder cleaned up'
                 } else {
                     Write-Host '❌ Model folder does not exist'
                 }
                 "
             """
-            
+
+            // Check if MODEL_GIT_URL or MODEL_LOCAL_PATH are provided
             if (params.MODEL_GIT_URL?.trim()) {
                 echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
                 bat "git clone ${params.MODEL_GIT_URL} Model"
@@ -52,8 +54,7 @@ pipeline {
         }
     }
 }
-
-       stage('Deploy') {
+     stage('Deploy') {
             steps {
                 script {
                     echo "📥 Fetching AIBOM script..."
