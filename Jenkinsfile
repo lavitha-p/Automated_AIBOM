@@ -52,16 +52,13 @@ pipeline {
         }
     }
 }
-            stage('Security Scan') {
+stage('Security Scan') {
   steps {
-    script {
-        echo "🐍 Starting AIBOM + SBOM Security Scan..."
-        bat 'python generate_aibom.py --model-path model_dir --output-dir reports'
-      
-    }
+    bat '"C:\\Users\\HP\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" generate_aibom.py --model-path model_dir --output-dir reports'
     archiveArtifacts artifacts: 'reports/merged_vulnerabilities.json', onlyIfSuccessful: true
   }
 }
+
 
 
 
