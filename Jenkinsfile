@@ -23,17 +23,23 @@ pipeline {
     }
 
     stages {
-        stage('Build') {
+       stage('Build') {
     steps {
         script {
             echo "🔥 Force cleanup of Model folder..."
             
-            // Fixed cleanup with proper PowerShell execution
-            bat '''powershell -Command "if (Test-Path '${WORKSPACE}\\Model') { 
-                    Remove-Item -Recurse -Force -Path '${WORKSPACE}\\Model'; 
-                    Write-Host '✅ Model folder cleaned up' 
-                }"'''
-
+            // Fixed PowerShell script
+            bat '''
+                powershell -Command "
+                if (Test-Path '${WORKSPACE}\\Model') {
+                    Remove-Item -Recurse -Force -Path '${WORKSPACE}\\Model';
+                    Write-Host '✅ Model folder cleaned up'
+                } else {
+                    Write-Host '❌ Model folder does not exist'
+                }
+                "
+            '''
+            
             if (params.MODEL_GIT_URL?.trim()) {
                 echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
                 bat "git clone ${params.MODEL_GIT_URL} Model"
@@ -46,10 +52,7 @@ pipeline {
         }
     }
 }
-
-
-
-        stage('Deploy') {
+       stage('Deploy') {
             steps {
                 script {
                     echo "📥 Fetching AIBOM script..."
