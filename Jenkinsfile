@@ -28,32 +28,31 @@ pipeline {
         script {
             echo "🔥 Force cleanup of Model folder..."
 
-            // Properly handle path with single quotes for PowerShell, using Groovy's interpolation for WORKSPACE
-            bat """
-                powershell -Command "
-                \$modelPath = '${env.WORKSPACE}\\Model'
+            // Use native PowerShell, not bat
+            powershell """
+                \$modelPath = Join-Path '${env.WORKSPACE}' 'Model'
                 if (Test-Path \$modelPath) {
                     Remove-Item -Recurse -Force -Path \$modelPath
                     Write-Host '✅ Model folder cleaned up'
                 } else {
-                    Write-Host '❌ Model folder does not exist'
+                    Write-Host '⚠️ Model folder not found, skipping cleanup'
                 }
-                "
             """
 
-            // Check if MODEL_GIT_URL or MODEL_LOCAL_PATH are provided
+            // Handle model import
             if (params.MODEL_GIT_URL?.trim()) {
                 echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
                 bat "git clone ${params.MODEL_GIT_URL} Model"
             } else if (params.MODEL_LOCAL_PATH?.trim()) {
                 echo "📁 Copying model from local path: ${params.MODEL_LOCAL_PATH}"
-                bat "xcopy /E /I /Y \"${params.MODEL_LOCAL_PATH}\" \"${WORKSPACE}\\Model\""
+                bat "xcopy /E /I /Y \"${params.MODEL_LOCAL_PATH}\" \"${env.WORKSPACE}\\Model\""
             } else {
                 error "❌ No model source provided! Please provide either MODEL_GIT_URL or MODEL_LOCAL_PATH."
             }
         }
     }
 }
+
      stage('Deploy') {
             steps {
                 script {
