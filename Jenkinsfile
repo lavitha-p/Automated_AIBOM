@@ -23,22 +23,22 @@ pipeline {
     }
 
     stages {
-       stage('Build') {
+      stage('Build') {
     steps {
         script {
             echo "🔥 Force cleanup of Model folder..."
-            
-            // Fixed PowerShell script
-            bat '''
+
+            // Ensure proper escaping of WORKSPACE for PowerShell
+            bat """
                 powershell -Command "
-                if (Test-Path '${WORKSPACE}\\Model') {
-                    Remove-Item -Recurse -Force -Path '${WORKSPACE}\\Model';
+                if (Test-Path '${env.WORKSPACE}\\Model') {
+                    Remove-Item -Recurse -Force -Path '${env.WORKSPACE}\\Model'
                     Write-Host '✅ Model folder cleaned up'
                 } else {
                     Write-Host '❌ Model folder does not exist'
                 }
                 "
-            '''
+            """
             
             if (params.MODEL_GIT_URL?.trim()) {
                 echo "📥 Cloning model from GitHub: ${params.MODEL_GIT_URL}"
@@ -52,6 +52,7 @@ pipeline {
         }
     }
 }
+
        stage('Deploy') {
             steps {
                 script {
