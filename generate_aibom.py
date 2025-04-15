@@ -16,11 +16,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--model-path", required=True, help="Path to the model directory")
 parser.add_argument("--output-dir", required=True, help="Path to save the generated reports")
 args = parser.parse_args()
-dataset_path = os.path.join(model_path, "script", "dataset.json")
-model_info_path = os.path.join(model_path, "script", "model_info.json")
-
 model_path = args.model_path
 output_dir = args.output_dir
+dataset_path = os.path.join(model_path, "script", "dataset.json")
+model_info_path = os.path.join(model_path, "script", "model_info.json")
 
 if not os.path.exists(model_path):
     print(f"❌ Error: Model path does not exist: {model_path}")
